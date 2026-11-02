@@ -1,4 +1,4 @@
-# Flash Memory Layout
+# Flash Memory
 
 ## 1. Tổng quan
 
