@@ -2,7 +2,7 @@
 
 static const Protocol_Access_Rule_t ProtocolAccessRuleTable[] = {
     /* CMD_ACCESS: 0x00 */
-    {CMD_ACCESS, ACCESS_LV_0, ACCESS_LEVEL_0},
+    {CMD_ACCESS, ACCESS_HANDSHAKE, ACCESS_LEVEL_0},
     {CMD_ACCESS, ACCESS_LV_1, ACCESS_LEVEL_0},
     {CMD_ACCESS, ACCESS_LV_2, ACCESS_LEVEL_0},
     {CMD_ACCESS, ACCESS_LV_3, ACCESS_LEVEL_0},
@@ -77,26 +77,6 @@ static const Protocol_Access_Rule_t ProtocolAccessRuleTable[] = {
     {CMD_OTA, OTA_SEND_PACKET, ACCESS_LEVEL_2},
 };
 
-/*==================================================================================================
-*                                PRIVATE FUNCTIONS DECLARATIONS
-==================================================================================================*/
-
-/**
- * @brief Check whether a command and ID combination is valid.
- *
- * Validates the ID against the list associated with the specified command.
- *
- * @param[in] u8Cmd Command code.
- * @param[in] u8Id  ID code.
- *
- * @return true if the command and ID combination is valid, otherwise false.
- */
-static bool sv_protocol_check_valid_cmd(uint8_t u8Cmd, uint8_t u8Id);
-
-/*==================================================================================================
-*                                   PUBLIC FUNCTIONS DEFINITIONS
-==================================================================================================*/
-
 uint8_t sv_protocol_get_required_level(uint8_t u8Cmd, uint8_t u8Id)
 {
     uint16_t u16Index;
@@ -112,95 +92,12 @@ uint8_t sv_protocol_get_required_level(uint8_t u8Cmd, uint8_t u8Id)
     return ACCESS_LEVEL_NONE;
 }
 
-bool sv_protocol_pack(bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t u8Id, const uint8_t *pPayload, uint16_t u16PayloadLen, uint8_t *pFrame, uint16_t *u16FrameLen)
+bool sv_protocol_pack(const uint8_t *pKey, bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t u8Id, const uint8_t *pPayload, uint16_t u16PayloadLen, uint8_t *pFrame, uint16_t *u16FrameLen)
 {
-    if (!sv_protocol_check_valid_cmd(u8Cmd, u8Id))
-    {
-        return false;
-    }
-
-    return drv_protocol_pack(bEncrypt, u64Serial, u8Cmd, u8Id, pPayload, u16PayloadLen, pFrame, u16FrameLen);
+    return drv_protocol_pack(pKey, bEncrypt, u64Serial, u8Cmd, u8Id, pPayload, u16PayloadLen, pFrame, u16FrameLen);
 }
 
-Protocol_Err_Code_t sv_protocol_unpack(const uint8_t *pFrame, uint16_t u16FrameLen, uint64_t *u64Serial, uint8_t *u8Cmd, uint8_t *u8Id, uint8_t *pPayload, uint16_t *u16PayloadLen)
+Protocol_Err_Code_t sv_protocol_unpack(const uint8_t *pKey, const uint8_t *pFrame, uint16_t u16FrameLen, uint64_t *u64Serial, uint8_t *u8Cmd, uint8_t *u8Id, uint8_t *pPayload, uint16_t *u16PayloadLen)
 {
-    Protocol_Err_Code_t eErrCode = drv_protocol_unpack(pFrame, u16FrameLen, u64Serial, u8Cmd, u8Id, pPayload, u16PayloadLen);
-
-    if ((eErrCode == PROTOCOL_ERR_SUCCESS) && (!sv_protocol_check_valid_cmd(*u8Cmd, *u8Id)))
-    {
-        return PROTOCOL_ERR_CMD_INVALID;
-    }
-
-    return eErrCode;
-}
-
-/*==================================================================================================
-*                                   PRIVATE FUNCTIONS DEFINITIONS
-==================================================================================================*/
-
-static bool sv_protocol_check_valid_cmd(uint8_t u8Cmd, uint8_t u8Id)
-{
-    switch (u8Cmd)
-    {
-    case CMD_ACCESS:
-        switch (u8Id)
-        {
-#define X(name, val) \
-    case val:        \
-        return true;
-            PROTOCOL_ACCESS_ID_LIST(X)
-#undef X
-        }
-        break;
-
-    case CMD_GET:
-    case CMD_SET:
-        switch (u8Id)
-        {
-#define X(name, val) \
-    case val:        \
-        return true;
-            PROTOCOL_CONFIG_ID_LIST(X)
-#undef X
-        }
-        break;
-
-    case CMD_QUERY:
-        switch (u8Id)
-        {
-#define X(name, val) \
-    case val:        \
-        return true;
-            PROTOCOL_QUERY_ID_LIST(X)
-#undef X
-        }
-        break;
-
-    case CMD_PUSH:
-        switch (u8Id)
-        {
-#define X(name, val) \
-    case val:        \
-        return true;
-            PROTOCOL_PUSH_ID_LIST(X)
-#undef X
-        }
-        break;
-
-    case CMD_OTA:
-        switch (u8Id)
-        {
-#define X(name, val) \
-    case val:        \
-        return true;
-            PROTOCOL_OTA_ID_LIST(X)
-#undef X
-        }
-        break;
-
-    default:
-        break;
-    }
-
-    return false;
+    return drv_protocol_unpack(pKey, pFrame, u16FrameLen, u64Serial, u8Cmd, u8Id, pPayload, u16PayloadLen);
 }

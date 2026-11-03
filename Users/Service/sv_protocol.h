@@ -19,7 +19,7 @@ typedef enum
 
 /* ID for CMD_ACCESS: 0x00 */
 #define PROTOCOL_ACCESS_ID_LIST(X) \
-    X(ACCESS_LV_0, 0x00)           \
+    X(ACCESS_HANDSHAKE, 0x00)      \
     X(ACCESS_LV_1, 0x01)           \
     X(ACCESS_LV_2, 0x02)           \
     X(ACCESS_LV_3, 0x03)
@@ -31,7 +31,7 @@ typedef enum
 #undef X
 } Protocol_Access_Id_Code_t;
 
-#define PROTOCOL_ACCESS_TIMEOUT 300000 // ms
+#define PROTOCOL_ACCESS_TIMEOUT 30000 // ms
 
 /* ID for CMD_SET and CMD_GET: 0x01 & 0x02 */
 #define PROTOCOL_CONFIG_ID_LIST(X)             \
@@ -154,34 +154,39 @@ uint8_t sv_protocol_get_required_level(uint8_t u8Cmd, uint8_t u8Id);
 /**
  * @brief Pack data into a protocol frame.
  *
- * Validates the command and ID before packing the protocol frame.
+ * Validates the command and ID, then packs the data into a protocol frame.
+ * The payload can optionally be encrypted using AES-128.
  *
- * @param[in]     bEncrypt       Enable AES-128 encryption.
- * @param[in]     u64Serial      Module serial number.
- * @param[in]     u8Cmd          Command code.
- * @param[in]     u8Id           ID code.
- * @param[in]     pPayload       Payload data.
- * @param[in]     u16PayloadLen  Payload size in bytes.
- * @param[out]    pFrame         Output frame buffer.
- * @param[out]    u16FrameLen    Output frame size in bytes.
+ * @param[in]  pKey          AES-128 encryption key.
+ * @param[in]  bEncrypt      Enable AES-128 encryption.
+ * @param[in]  u64Serial     Module serial number.
+ * @param[in]  u8Cmd         Command code.
+ * @param[in]  u8Id          ID code.
+ * @param[in]  pPayload      Payload data.
+ * @param[in]  u16PayloadLen Payload size in bytes.
+ * @param[out] pFrame        Output frame buffer.
+ * @param[out] u16FrameLen   Output frame size in bytes.
  *
  * @return true if the frame is packed successfully, otherwise false.
  */
-bool sv_protocol_pack(bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t u8Id, const uint8_t *pPayload, uint16_t u16PayloadLen, uint8_t *pFrame, uint16_t *u16FrameLen);
+bool sv_protocol_pack(const uint8_t *pKey, bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t u8Id, const uint8_t *pPayload, uint16_t u16PayloadLen, uint8_t *pFrame, uint16_t *u16FrameLen);
 
 /**
  * @brief Unpack and validate a protocol frame.
  *
  * Unpacks the protocol frame and validates the command and ID.
+ * Decrypts the payload if AES-128 encryption is enabled.
  *
- * @param[in]  pFrame         Input protocol frame.
- * @param[in]  u16FrameLen    Frame size in bytes.
- * @param[out] u64Serial      Module serial number.
- * @param[out] u8Cmd          Command code.
- * @param[out] u8Id           ID code.
- * @param[out] pPayload       Output payload buffer.
- * @param[out] u16PayloadLen  Output payload size in bytes.
+ * @param[in]  pKey          AES-128 decryption key.
+ * @param[in]  pFrame        Input protocol frame.
+ * @param[in]  u16FrameLen   Frame size in bytes.
+ * @param[out] u64Serial     Module serial number.
+ * @param[out] u8Cmd         Command code.
+ * @param[out] u8Id          ID code.
+ * @param[out] pPayload      Output payload buffer.
+ * @param[out] u16PayloadLen Output payload size in bytes.
  *
  * @return Protocol error code.
  */
-Protocol_Err_Code_t sv_protocol_unpack(const uint8_t *pFrame, uint16_t u16FrameLen, uint64_t *u64Serial, uint8_t *u8Cmd, uint8_t *u8Id, uint8_t *pPayload, uint16_t *u16PayloadLen);
+Protocol_Err_Code_t sv_protocol_unpack(const uint8_t *pKey, const uint8_t *pFrame, uint16_t u16FrameLen, uint64_t *u64Serial, uint8_t *u8Cmd, uint8_t *u8Id, uint8_t *pPayload,
+                                       uint16_t *u16PayloadLen);

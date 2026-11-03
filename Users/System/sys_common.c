@@ -66,14 +66,35 @@ uint32_t sys_get_random_number(void)
 
     if (!bStatus)
     {
-        // u32RandomNumber = ((uint32_t)rand() << 16) | (uint32_t)rand();
-        u32RandomNumber = 0;
+        u32RandomNumber = ((uint32_t)rand() << 16) | (uint32_t)rand();
     }
 
     HAL_RNG_DeInit(&hrng);
     __HAL_RCC_RNG_CLK_DISABLE();
 
     return u32RandomNumber;
+}
+
+bool sys_get_random_bytes(uint8_t *pBuffer, uint16_t u16Len)
+{
+    uint16_t u16Index = 0U;
+
+    if ((pBuffer == NULL) || (u16Len == 0U))
+    {
+        return false;
+    }
+
+    while (u16Index < u16Len)
+    {
+        uint32_t u32RandomNumber = sys_get_random_number();
+
+        for (uint8_t u8ByteIndex = 0U; (u8ByteIndex < 4U) && (u16Index < u16Len); u8ByteIndex++)
+        {
+            pBuffer[u16Index++] = (uint8_t)(u32RandomNumber >> (u8ByteIndex * 8U));
+        }
+    }
+
+    return true;
 }
 
 /*==================================================================================================

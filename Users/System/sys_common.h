@@ -70,3 +70,13 @@ void sys_sleep(void);
  * @return Generated 32-bit random number.
  */
 uint32_t sys_get_random_number(void);
+
+/**
+ * @brief Generates random bytes.
+ *
+ * @param[out] pBuffer Pointer to the output buffer.
+ * @param[in]  u16Len  Number of random bytes to generate.
+ *
+ * @return true if generation succeeds; otherwise, false.
+ */
+bool sys_get_random_bytes(uint8_t *pBuffer, uint16_t u16Len);

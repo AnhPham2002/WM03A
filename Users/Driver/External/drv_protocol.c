@@ -1,8 +1,6 @@
 #include "drv_protocol.h"
 
-static const uint8_t au8Key[16] = PROTOCOL_KEY;
-
-bool drv_protocol_pack(bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t u8Id, const uint8_t *pPayload, uint16_t u16PayloadLen, uint8_t *pFrame, uint16_t *u16FrameLen)
+bool drv_protocol_pack(const uint8_t *pKey, bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t u8Id, const uint8_t *pPayload, uint16_t u16PayloadLen, uint8_t *pFrame, uint16_t *u16FrameLen)
 {
     Protocol_Header_t *pHeader;
     uint8_t *pCiphertext;
@@ -42,7 +40,7 @@ bool drv_protocol_pack(bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t
             memmove(pCiphertext + u16PlaintextLen, &u16CrcEncrpyt, sizeof(u16CrcEncrpyt)); // Copy crc encrypt to buffer
             u16PlaintextLen += sizeof(u16CrcEncrpyt);
             pHeader->u16CiphertextLen = ALIGN16(u16PlaintextLen); // Length after encrypt
-            aes_128_encrypt(au8Key, pCiphertext, u16PlaintextLen);
+            aes_128_encrypt(pKey, pCiphertext, u16PlaintextLen);
         }
         else
         {
@@ -58,7 +56,7 @@ bool drv_protocol_pack(bool bEncrypt, uint64_t u64Serial, uint8_t u8Cmd, uint8_t
     return true;
 }
 
-Protocol_Err_Code_t drv_protocol_unpack(const uint8_t *pFrame, uint16_t u16FrameLen, uint64_t *u64Serial, uint8_t *u8Cmd, uint8_t *u8Id, uint8_t *pPayload, uint16_t *u16PayloadLen)
+Protocol_Err_Code_t drv_protocol_unpack(const uint8_t *pKey, const uint8_t *pFrame, uint16_t u16FrameLen, uint64_t *u64Serial, uint8_t *u8Cmd, uint8_t *u8Id, uint8_t *pPayload, uint16_t *u16PayloadLen)
 {
     const Protocol_Header_t *pHeader;
     const uint8_t *pCiphertext;
@@ -114,13 +112,13 @@ Protocol_Err_Code_t drv_protocol_unpack(const uint8_t *pFrame, uint16_t u16Frame
     // AES ciphertext length must be at least one block (16 bytes)
     if (pHeader->u16CiphertextLen >= 16)
     {
-        aes_128_decrypt(au8Key, pPayload, pHeader->u16CiphertextLen);
+        aes_128_decrypt(pKey, pPayload, pHeader->u16CiphertextLen);
 
         memcpy(u16PayloadLen, pPayload, sizeof(*u16PayloadLen));
 
         if ((uint32_t)*u16PayloadLen + sizeof(*u16PayloadLen) + sizeof(u16CrcEncrpyt) > pHeader->u16CiphertextLen)
         {
-            return PROTOCOL_ERR_FRAME_INVALID;
+            return PROTOCOL_ERR_PAYLOAD_INVALID;
         }
 
         memcpy(&u16CrcEncrpyt, &pPayload[sizeof(*u16PayloadLen) + *u16PayloadLen], sizeof(u16CrcEncrpyt));
@@ -129,7 +127,7 @@ Protocol_Err_Code_t drv_protocol_unpack(const uint8_t *pFrame, uint16_t u16Frame
 
         if (u16CrcEncrpytCalc != u16CrcEncrpyt)
         {
-            return PROTOCOL_ERR_FRAME_INVALID;
+            return PROTOCOL_ERR_PAYLOAD_INVALID;
         }
     }
     else

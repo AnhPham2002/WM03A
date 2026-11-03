@@ -226,12 +226,9 @@ bool app_storage_set_password(uint8_t u8PasswordLevel, const uint8_t *pPassword,
     }
 
     uint8_t au8Salt[sizeof(((Password_Record_t *)0)->au8Salt)];
-    uint32_t u32RandomVal;
-    for (uint8_t i = 0; i < sizeof(au8Salt); i += sizeof(u32RandomVal))
+    if (!sys_get_random_bytes(au8Salt, sizeof(au8Salt)))
     {
-        u32RandomVal = sys_get_random_number();
-        uint8_t u8CopyLen = (sizeof(au8Salt) - i >= sizeof(u32RandomVal)) ? sizeof(u32RandomVal) : (sizeof(au8Salt) - i);
-        memcpy(&au8Salt[i], &u32RandomVal, u8CopyLen);
+        return false;
     }
 
     memcpy(sPasswordRecord[u8PasswordLevel - 1].au8Salt, au8Salt, sizeof(au8Salt));

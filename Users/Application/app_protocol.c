@@ -2,6 +2,9 @@
 
 #include "app_push.h"
 
+static const uint8_t au8MasterKey[PROTOCOL_KEY_SIZE] = PROTOCOL_MASTER_KEY;
+static uint8_t au8SessionKey[PROTOCOL_KEY_SIZE];
+
 static Ota_Metadata_t *const pOtaMetadata = (Ota_Metadata_t *)RAM_NOINIT_OTA_METADATA_ADDRESS;
 
 static uint32_t u32LastTimeAccess;
@@ -248,6 +251,7 @@ void app_protocol_update(void)
     if (sys_time_ms() - u32LastTimeAccess >= PROTOCOL_ACCESS_TIMEOUT)
     {
         eProtocolCurrentLevel = ACCESS_LEVEL_0;
+        memset(au8SessionKey, 0, sizeof(au8SessionKey));
     }
 
     if (bOtaFinishUpdateFlag)
@@ -301,7 +305,7 @@ bool app_protocol_pack_push_info(uint8_t *pFrame, uint16_t *u16FrameLen)
 
     *p++ = app_storage_get_reset_count();
 
-    return sv_protocol_pack(true, app_storage_get_module_serial(), CMD_PUSH, PUSH_INFO, au8ProtocolBuf, p - au8ProtocolBuf, pFrame, u16FrameLen);
+    return sv_protocol_pack(au8MasterKey, true, app_storage_get_module_serial(), CMD_PUSH, PUSH_INFO, au8ProtocolBuf, p - au8ProtocolBuf, pFrame, u16FrameLen);
 }
 
 bool app_protocol_pack_push_latch(uint16_t u16LatchIndex, uint8_t *pFrame, uint16_t *u16FrameLen)
@@ -311,7 +315,7 @@ bool app_protocol_pack_push_latch(uint16_t u16LatchIndex, uint8_t *pFrame, uint1
     if (app_storage_latch_load_next(u16LatchIndex, &sLatchData))
     {
         app_protocol_pack_latch_payload(&sLatchData, au8ProtocolBuf, &u16ProtocolBufLen);
-        return sv_protocol_pack(true, app_storage_get_module_serial(), CMD_PUSH, PUSH_LATCH, au8ProtocolBuf, u16ProtocolBufLen, pFrame, u16FrameLen);
+        return sv_protocol_pack(au8MasterKey, true, app_storage_get_module_serial(), CMD_PUSH, PUSH_LATCH, au8ProtocolBuf, u16ProtocolBufLen, pFrame, u16FrameLen);
     }
 
     return false;
@@ -341,7 +345,7 @@ bool app_protocol_pack_push_event(uint16_t u16EventIndex, uint8_t *u8EventPackCo
     }
 
     app_protocol_pack_event_payload(sEventList, *u8EventPackCount, au8ProtocolBuf, &u16ProtocolBufLen);
-    return sv_protocol_pack(true, app_storage_get_module_serial(), CMD_PUSH, PUSH_EVENT, au8ProtocolBuf, u16ProtocolBufLen, pFrame, u16FrameLen);
+    return sv_protocol_pack(au8MasterKey, true, app_storage_get_module_serial(), CMD_PUSH, PUSH_EVENT, au8ProtocolBuf, u16ProtocolBufLen, pFrame, u16FrameLen);
 }
 
 Protocol_Err_Code_t app_protocol_process(Protocol_Data_Source_t eDataSource, const uint8_t *pRxFrame, uint16_t u16RxFrameLen, uint8_t *pTxFrame, uint16_t *u16TxFrameLen)
@@ -351,11 +355,24 @@ Protocol_Err_Code_t app_protocol_process(Protocol_Data_Source_t eDataSource, con
     uint8_t u8Id;
     uint8_t *pRxPayload = au8ProtocolBuf;
     uint16_t u16RxPayloadLen;
-    Protocol_Err_Code_t eErrCode;
+    Protocol_Err_Code_t eErrCode = PROTOCOL_ERR_UNKNOW;
 
     u32LastTimeAccess = sys_time_ms();
 
-    eErrCode = sv_protocol_unpack(pRxFrame, u16RxFrameLen, &u64ModuleSerial, &u8Cmd, &u8Id, pRxPayload, &u16RxPayloadLen);
+    if (eDataSource == PROTOCOL_DATA_SOURCE_CELLULAR)
+    {
+        eErrCode = sv_protocol_unpack(au8MasterKey, pRxFrame, u16RxFrameLen, &u64ModuleSerial, &u8Cmd, &u8Id, pRxPayload, &u16RxPayloadLen);
+    }
+    else if (eDataSource == PROTOCOL_DATA_SOURCE_RS485)
+    {
+        eErrCode = sv_protocol_unpack(au8SessionKey, pRxFrame, u16RxFrameLen, &u64ModuleSerial, &u8Cmd, &u8Id, pRxPayload, &u16RxPayloadLen);
+
+        if ((eErrCode == PROTOCOL_ERR_PAYLOAD_INVALID) && (u8Cmd == CMD_ACCESS) && (u8Id == ACCESS_HANDSHAKE))
+        {
+            eErrCode = sv_protocol_unpack(au8MasterKey, pRxFrame, u16RxFrameLen, &u64ModuleSerial, &u8Cmd, &u8Id, pRxPayload, &u16RxPayloadLen);
+        }
+    }
+
     if (eErrCode == PROTOCOL_ERR_NULL_POINTER)
     {
         return PROTOCOL_ERR_NULL_POINTER;
@@ -366,7 +383,7 @@ Protocol_Err_Code_t app_protocol_process(Protocol_Data_Source_t eDataSource, con
         return PROTOCOL_ERR_MODULE_SERIAL_INVALID;
     }
 
-    if ((eErrCode == PROTOCOL_ERR_CMD_INVALID) || (eErrCode == PROTOCOL_ERR_CRC16_INVALID) || (eErrCode == PROTOCOL_ERR_FRAME_INVALID))
+    if ((eErrCode == PROTOCOL_ERR_UNKNOW) || (eErrCode == PROTOCOL_ERR_CMD_INVALID) || (eErrCode == PROTOCOL_ERR_CRC16_INVALID) || (eErrCode == PROTOCOL_ERR_FRAME_INVALID))
     {
         app_protocol_pack_ack(u8Cmd, u8Id, eErrCode, pTxFrame, u16TxFrameLen);
         return eErrCode;
@@ -441,7 +458,7 @@ static bool app_protocol_pack_ack(uint8_t u8Cmd, uint8_t u8Id, Protocol_Err_Code
     p += sizeof(sDateTimeSend);
     *p++ = (uint8_t)eErrCode;
 
-    return sv_protocol_pack(false, app_storage_get_module_serial(), u8Cmd, u8Id, au8Payload, p - au8Payload, pFrame, u16FrameLen);
+    return sv_protocol_pack(au8MasterKey, false, app_storage_get_module_serial(), u8Cmd, u8Id, au8Payload, p - au8Payload, pFrame, u16FrameLen);
 }
 
 static void app_protocol_pack_latch_payload(const Latch_Data_t *pLatch, uint8_t *pPayload, uint16_t *u16PayloadLen)
@@ -622,24 +639,36 @@ static void app_protocol_pack_changed_info_log_payload(const Changed_Info_Data_t
 
 static Protocol_Err_Code_t app_protocol_access_handler(uint8_t u8Id, const uint8_t *pRxPayload, uint16_t u16RxPayloadLen, uint8_t *pTxFrame, uint16_t *u16TxFrameLen)
 {
+    bool bHandShaked = false;
+    bool bSessionKeyStatus = false;
     bool bPasswordCorrect = false;
     uint8_t u8PasswordLen;
     uint8_t au8Password[PASSWORD_MAX_LENGTH];
+    uint8_t au8TxPayload[32];
     const uint8_t *p = pRxPayload;
 
-    u8PasswordLen = *p++;
-    memcpy(au8Password, p, u8PasswordLen);
-
-    if (app_storage_verify_password(u8Id, au8Password, u8PasswordLen))
+    if (u8Id != ACCESS_HANDSHAKE)
     {
-        bPasswordCorrect = true;
+        bHandShaked = true;
+        u8PasswordLen = *p++;
+        memcpy(au8Password, p, u8PasswordLen);
+
+        if (app_storage_verify_password(u8Id, au8Password, u8PasswordLen))
+        {
+            bPasswordCorrect = true;
+        }
     }
 
     switch (u8Id)
     {
-    case ACCESS_LV_0:
-        bPasswordCorrect = true;
-        eProtocolCurrentLevel = ACCESS_LEVEL_0;
+    case ACCESS_HANDSHAKE:
+        if (u16RxPayloadLen == PROTOCOL_KEY_SIZE / 2U)
+        {
+            bSessionKeyStatus = true;
+            memcpy(au8SessionKey, p, u16RxPayloadLen);
+            sys_get_random_bytes(&au8SessionKey[PROTOCOL_KEY_SIZE / 2U], PROTOCOL_KEY_SIZE / 2U);
+            memcpy(au8TxPayload, au8SessionKey, PROTOCOL_KEY_SIZE);
+        }
         break;
 
     case ACCESS_LV_1:
@@ -668,16 +697,32 @@ static Protocol_Err_Code_t app_protocol_access_handler(uint8_t u8Id, const uint8
         return PROTOCOL_ERR_CMD_INVALID;
     }
 
-    if (bPasswordCorrect)
+    if (bHandShaked)
     {
-        app_protocol_pack_ack(CMD_ACCESS, u8Id, PROTOCOL_ERR_SUCCESS, pTxFrame, u16TxFrameLen);
-        u32LastTimeAccess = sys_time_ms();
-        return PROTOCOL_ERR_SUCCESS;
+        if (bPasswordCorrect)
+        {
+            app_protocol_pack_ack(CMD_ACCESS, u8Id, PROTOCOL_ERR_SUCCESS, pTxFrame, u16TxFrameLen);
+            u32LastTimeAccess = sys_time_ms();
+            return PROTOCOL_ERR_SUCCESS;
+        }
+        else
+        {
+            app_protocol_pack_ack(CMD_ACCESS, u8Id, PROTOCOL_ERR_PASSWORD_INCORRECT, pTxFrame, u16TxFrameLen);
+            return PROTOCOL_ERR_PASSWORD_INCORRECT;
+        }
     }
     else
     {
-        app_protocol_pack_ack(CMD_ACCESS, u8Id, PROTOCOL_ERR_PASSWORD_INCORRECT, pTxFrame, u16TxFrameLen);
-        return PROTOCOL_ERR_PASSWORD_INCORRECT;
+        if (bSessionKeyStatus)
+        {
+            sv_protocol_pack(au8MasterKey, true, app_storage_get_module_serial(), CMD_ACCESS, ACCESS_HANDSHAKE, au8TxPayload, PROTOCOL_KEY_SIZE, pTxFrame, u16TxFrameLen);
+            return PROTOCOL_ERR_SUCCESS;
+        }
+        else
+        {
+            app_protocol_pack_ack(CMD_ACCESS, ACCESS_HANDSHAKE, PROTOCOL_ERR_PAYLOAD_INVALID, pTxFrame, u16TxFrameLen);
+            return PROTOCOL_ERR_PAYLOAD_INVALID;
+        }
     }
 }
 
@@ -1112,7 +1157,7 @@ static Protocol_Err_Code_t app_protocol_get_handler(uint8_t u8Id, const uint8_t 
         return PROTOCOL_ERR_FRAME_INVALID;
     }
 
-    sv_protocol_pack(true, app_storage_get_module_serial(), CMD_GET, u8Id, au8TxPayload, p - au8TxPayload, pTxFrame, u16TxFrameLen);
+    sv_protocol_pack(au8SessionKey, true, app_storage_get_module_serial(), CMD_GET, u8Id, au8TxPayload, p - au8TxPayload, pTxFrame, u16TxFrameLen);
     return PROTOCOL_ERR_SUCCESS;
 }
 
@@ -2490,7 +2535,7 @@ static Protocol_Err_Code_t app_protocol_query_handler(uint8_t u8Id, const uint8_
         return PROTOCOL_ERR_FRAME_INVALID;
     }
 
-    sv_protocol_pack(true, app_storage_get_module_serial(), CMD_QUERY, u8Id, au8TxPayload, p - au8TxPayload, pTxFrame, u16TxFrameLen);
+    sv_protocol_pack(au8SessionKey, true, app_storage_get_module_serial(), CMD_QUERY, u8Id, au8TxPayload, p - au8TxPayload, pTxFrame, u16TxFrameLen);
     return PROTOCOL_ERR_SUCCESS;
 }
 
@@ -2729,6 +2774,6 @@ static Protocol_Err_Code_t app_protocol_ota_handler(uint8_t u8Id, uint8_t *pRxPa
         return PROTOCOL_ERR_FRAME_INVALID;
     }
 
-    sv_protocol_pack(true, app_storage_get_module_serial(), CMD_OTA, u8Id, au8TxPayload, pTx - au8TxPayload, pTxFrame, u16TxFrameLen);
+    sv_protocol_pack(au8SessionKey, true, app_storage_get_module_serial(), CMD_OTA, u8Id, au8TxPayload, pTx - au8TxPayload, pTxFrame, u16TxFrameLen);
     return PROTOCOL_ERR_SUCCESS;
 }
