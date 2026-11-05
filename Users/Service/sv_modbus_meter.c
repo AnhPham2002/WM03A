@@ -80,7 +80,7 @@ bool sv_modbus_meter_get_data(uint8_t u8MeterIndex, Modbus_Meter_Data_t *pData)
         }
         else
         {
-            pData->dTotalForward = -1; // Invalid value
+            pData->dTotalForward = -2; // Invalid value
         }
     }
     else
@@ -100,7 +100,7 @@ bool sv_modbus_meter_get_data(uint8_t u8MeterIndex, Modbus_Meter_Data_t *pData)
         }
         else
         {
-            pData->dTotalReverse = -1; // Invalid value
+            pData->dTotalReverse = -2; // Invalid value
         }
     }
     else
@@ -120,7 +120,7 @@ bool sv_modbus_meter_get_data(uint8_t u8MeterIndex, Modbus_Meter_Data_t *pData)
         }
         else
         {
-            pData->dFlowRate = -1; // Invalid value
+            pData->dFlowRate = -2; // Invalid value
         }
     }
     else
