@@ -48,8 +48,10 @@ Payload của Push Info được đóng gói theo thứ tự các trường sau:
 | Trường | Kích thước | Định dạng | Mô tả |
 |---|---:|---|---|
 | DATE_TIME | 6 B | `YY MM DD HH mm SS` | Thời gian tại thời điểm thiết bị gửi Push Info. |
-| FIRMWARE_VERSION | 10 B | ASCII | Phiên bản Firmware hiện tại của thiết bị. |
-| SIM_CCID | 25 B | ASCII | Số nhận dạng SIM Card (CCID). Nếu không lấy được thông tin CCID, trường này được điền bằng 0. |
+| FIRMWARE_VERSION_LEN | 1 B | `uint8_t` | Độ dài phiên bản Firmware hiện tại của thiết bị. |
+| FIRMWARE_VERSION | Thay đổi | ASCII | Phiên bản Firmware hiện tại của thiết bị. |
+| SIM_CCID_LEN | 1 B | `uint8_t` | Độ dài CCID. Nếu không lấy được thông tin CCID, SIM_CCID_LEN = 0 và bỏ qua trường SIM_CCID. |
+| SIM_CCID | Thay đổi | ASCII | Số nhận dạng SIM Card (CCID).|
 | RSSI | 1 B | `int8_t` | Cường độ tín hiệu thu được (Received Signal Strength Indicator), đơn vị dBm. |
 | RSRP | 1 B | `int8_t` | Công suất tín hiệu tham chiếu thu được (Reference Signal Received Power), đơn vị dBm. |
 | RSRQ | 1 B | `int8_t` | Chỉ số chất lượng tín hiệu tham chiếu (Reference Signal Received Quality), đơn vị dB. |
@@ -327,7 +329,7 @@ Các lỗi trong quá trình Push được định nghĩa bởi `Push_Error_t`:
 
 **Các bước hoạt động của Cellular**
 
-Quá trình hoạt động của Cellular được quản lý theo các trạng thái định nghĩa trong `Cellular_Step_t`:
+Quá trình hoạt động của Cellular được quản lý theo các trạng thái định nghĩa trong `Cellular_Step_t` ở [Quy trình khởi động và giao tiếp với Module 4G](../communication/cellular.md):
 
 | Giá trị | Trạng thái | Mô tả |
 |---|---|---|
