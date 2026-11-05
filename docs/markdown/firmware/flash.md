@@ -81,8 +81,3 @@ Mỗi slot gồm một vùng Metadata và một vùng Firmware, có cùng kích 
 Giao thức và quy trình cập nhật firmware được mô tả trong tài liệu [OTA](../communication/ota.md).
 
 ## 5. Tài liệu liên quan
-
-- [Firmware Architecture](firmware_architecture.md)
-- [Storage](storage.md)
-- [OTA](../communication/ota.md)
-- [Hardware Architecture](../hardware/hardware.md)

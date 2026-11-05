@@ -104,16 +104,6 @@ Khung truyền được định nghĩa ở mục [Bảng chi tiết các trườ
 
 Chi tiết trong [Giao tiếp qua cổng RS485](../communication/rs485.md).
 
-#### 3.1.1. Bắt tay với thiết bị
-
-#### 3.1.2. Đăng nhập vào thiết bị
-
-Payload bao gồm độ dài mật khẩu và mật khẩu đăng nhập vào thiết bị với quyền xác định bởi `ID`:
-- **LEN:** Độ dài mật khẩu (1 byte), khoảng giá trị từ `4` đến `32`.
-- **PASSWORD:** Mật khẩu tương ứng với quyền truy cập (có độ dài xác định bởi **LEN**).
-
-Sau khi gửi lệnh đăng nhập từ PC tool xuống thiết bị, thiết bị xác nhận mật khẩu nhận được tại quyền truy cập đó. Nếu đúng mật khẩu sẽ gửi bản tin ACK với mã `PROTOCOL_ERR_SUCCESS` (`0x00`). Nếu sai mật khẩu sẽ gửi bản tin ACK với mã `PROTOCOL_ERR_PASSWORD_INCORRECT` (`0x10`).
-
 ### 3.2. GET (`0x01`) & SET (`0x02`) — Đọc và ghi cấu hình hệ thống
 
 Các lệnh `GET` (`0x01`) và `SET` (`0x02`) được sử dụng để đọc và ghi cấu hình hệ thống.
@@ -390,9 +380,10 @@ Chức năng tạo sự kiện giả được dùng để phục vụ cho mục 
 |---:|---|---:|---|---|
 | 0 | Loại thiết bị phát hiện sự kiện | 1 byte | `uint8_t` | `0x00`: module / `0x01`: đồng hồ xung / `0x02`: đồng hồ modbus / `0x03`: cảm biến áp suất |
 | 1 | Số thứ tự thiết bị | 1 byte | `uint8_t` | Module: `0x00` / Đồng hồ xung: `0x00`–`0x03` / Đồng hồ modbus: `0x00`–`0x03` / Cảm biến áp suất: `0x00`–`0x01` |
-| 2 | Sự kiện | 1 byte | `uint8_t` | Tra [Bảng danh sách sự kiện](#table_event_code)  |
+| 2 | Sự kiện | 1 byte | `uint8_t` | Tra Bảng danh sách sự kiện  |
 
-**Danh sách sự kiện**<a id="table_event_code"></a>
+**Danh sách sự kiện**
+
 | Hex | Event | Mô tả |
 |---|---|---|
 | `0x00` | `EVENT_MCU_RESET` | Phát hiện reset thiết bị |
@@ -482,7 +473,9 @@ Lệnh `QUERY` được sử dụng để yêu cầu thiết bị cung cấp th�
 ```
 
 #### 3.3.4. Yêu cầu dữ liệu đồng hồ xung / đồng hồ Modbus
+
 Payload yêu cầu là chỉ số đồng hồ `MeterIndex`, giá trị hợp lệ trong khoảng `0x00` — `0x04`. Payload phản hồi được đóng gói theo thứ tự: chỉ số đồng hồ, số serial, tổng lưu lượng xuôi, tổng lưu lượng ngược, lưu lượng tức thời.
+
 | Offset | Trường | Kích thước | Định dạng | Ý nghĩa |
 |---:|---|---:|---|---|
 | 0 | `u8MeterIndex` | 1 byte | `uint8_t` | Chỉ số đồng hồ |
@@ -504,7 +497,9 @@ Payload yêu cầu là chỉ số đồng hồ `MeterIndex`, giá trị hợp l�
 ```
 
 #### 3.3.5. Yêu cầu dữ liệu cảm biến áp suất
+
 Payload yêu cầu là chỉ số đồng hồ `MeterIndex`, giá trị hợp lệ trong khoảng `0x00` — `0x01`. Payload phản hồi gồm được đóng gói theo thứ tự: Chỉ số cảm biến, số serial cảm biến, giá trị áp suất.
+
 | Offset | Trường | Kích thước | Định dạng | Ý nghĩa |
 |---:|---|---:|---|---|
 | 0 | `u8MeterIndex` | 1 byte | `uint8_t` | Chỉ số cảm biến |
@@ -639,6 +634,7 @@ Payload yêu cầu gồm chỉ số bản ghi push status cần đọc, kiểu `
 Nếu không đọc được bản ghi push status, thiết bị trả về lỗi `PROTOCOL_ERR_UNKNOW`.
 
 **Bảng mã lỗi module 4G**
+
 | Hex | Mã lỗi | Mô tả |
 |---|---|---|
 | `0x00` | `CELLULAR_ERROR_NONE` | Không có lỗi |
@@ -652,6 +648,7 @@ Nếu không đọc được bản ghi push status, thiết bị trả về lỗ
 | `0x08` | `CELLULAR_ERROR_TCP_CONNECT` | Lỗi kết nối TCP |
 
 **Bảng mã lỗi giao tiếp server**
+
 | Hex | Mã lỗi | Mô tả |
 |---|---|---|
 | `0x00` | `PUSH_ERROR_NONE` | Không có lỗi |

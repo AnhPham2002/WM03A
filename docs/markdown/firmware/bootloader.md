@@ -1,4 +1,4 @@
-# Bootloader WM03A
+# WM03A Bootloader
 
 ## 1. Tổng quan
 
@@ -18,7 +18,7 @@ Bootloader nằm ở vùng đầu Flash của STM32L431RCT6 (xem [Flash Layout](
 | Slot B Metadata | `0x08024000` | 2 KB | `SLOT_B_METADATA_ADDR` |
 | Slot B Firmware | `0x08024800` | 110 KB | `SLOT_B_START_ADDR` |
 
-Vùng `BOOT_VERSION` (`0x08007FF0`, 16 B) chứa chuỗi phiên bản bootloader. Biến `au8Verison` được đặt trong section `.boot_version` với nội dung `"V1.0.1"`, tối đa 10 byte theo định dạng `Vxx.xx.xxx`.
+Vùng `BOOT_VERSION` (`0x08007FF0`, 16 B) chứa chuỗi phiên bản bootloader. Biến `au8Verison` được đặt trong section `.boot_version`, lưu tối đa 10 byte theo định dạng `Vxx.xx.xxx`.
 
 ## 3. Luồng khởi động
 

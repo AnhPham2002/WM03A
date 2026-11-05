@@ -24,6 +24,7 @@ Mỗi Frame trao đổi giữa Server và WM03A được đóng gói theo cấu 
 Chi tiết định nghĩa từng trường, quy tắc mã hóa và kiểm tra tính hợp lệ của Frame được trình bày trong tài liệu [Protocol](../communication/protocol.md).
 
 Trường MESSAGE được mã hóa theo chuẩn AES128-ECB, dạng dữ liệu trước mã hóa như sau:
+
 | Trường | Kích thước | Mô tả |
 |---|---:|---|
 | LEN | 2 B | Độ dài trường PAYLOAD (byte). |

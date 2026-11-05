@@ -1,3 +1,6 @@
 .cache/
 build/
 compile_commands.json
+__pycache__
+docs/html/*
+!docs/html/WM03A.html
