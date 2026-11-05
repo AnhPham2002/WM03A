@@ -73,13 +73,7 @@ WM03A/
 
 ## 5. Tài liệu kỹ thuật
 
-Các tài liệu chi tiết được tổ chức riêng trong thư mục `docs/`:
-
-- [Nền tảng phần cứng](docs/hardware.md) — các khối chức năng phần cứng và giao diện ngoại vi.
-- [Kiến trúc phần mềm](docs/architecture.md) — cấu trúc module, phân tầng và nguyên tắc phụ thuộc giữa các thành phần.
-- [Giao thức truyền thông](docs/communication_protocol.md) — cấu trúc bản tin, định dạng dữ liệu và quy trình trao đổi với thiết bị hoặc máy chủ.
-- [Quản lý lưu trữ](docs/storage.md) — tổ chức dữ liệu, cấu hình và nhật ký trong bộ nhớ.
-- [Build và nạp firmware](docs/build_and_flash.md) — hướng dẫn cấu hình môi trường, biên dịch, nạp và gỡ lỗi.
+Các tài liệu chi tiết được tổ chức riêng trong thư mục `docs/`.
 
 ## 6. Biên dịch và nạp firmware
 

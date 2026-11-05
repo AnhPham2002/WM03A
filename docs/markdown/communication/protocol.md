@@ -102,28 +102,7 @@ Khung truyền được định nghĩa ở mục [Bảng chi tiết các trườ
 
 ### 3.1. ACCESS (`0x00`) — Truy cập thiết bị
 
-Lệnh `0x00` chỉ áp dụng cho giao tiếp qua cổng RS485. Với giao tiếp 4G, thiết bị bỏ qua cơ chế phân quyền truy cập.
-
-Thời gian timeout được định nghĩa bởi `PROTOCOL_ACCESS_TIMEOUT` là 5 phút. Khi hết thời gian này, cấp quyền truy cập được đưa về `ACCESS_LEVEL_0`.
-
-Mật khẩu có độ dài cho phép là từ 4 đến 32 ký tự.
-
-| Hex | ID | Payload | Ý nghĩa |
-|---:|---|---|---|
-| `0x00` | `ACCESS_LV_0` | [Bắt tay](#411-bắt-tay-với-thiết-bị) | Bắt tay với thiết bị và truy cập mức 0 (Operator) |
-| `0x01` | `ACCESS_LV_1` | [Đăng nhập](#412-đăng-nhập-vào-thiết-bị) | Xác thực và cấp quyền truy cập mức 1 (Supervisor) |
-| `0x02` | `ACCESS_LV_2` | [Đăng nhập](#412-đăng-nhập-vào-thiết-bị) | Xác thực và cấp quyền truy cập mức 2 (Engineer) |
-| `0x03` | `ACCESS_LV_3` | [Đăng nhập](#412-đăng-nhập-vào-thiết-bị) | Xác thực và cấp quyền truy cập mức 3 (Factory / Admin) |
-
-#### 3.1.1. Bắt tay với thiết bị
-
-#### 3.1.2. Đăng nhập vào thiết bị
-
-Payload bao gồm độ dài mật khẩu và mật khẩu đăng nhập vào thiết bị với quyền xác định bởi `ID`:
-- **LEN:** Độ dài mật khẩu (1 byte), khoảng giá trị từ `4` đến `32`.
-- **PASSWORD:** Mật khẩu tương ứng với quyền truy cập (có độ dài xác định bởi **LEN**).
-
-Sau khi gửi lệnh đăng nhập từ PC tool xuống thiết bị, thiết bị xác nhận mật khẩu nhận được tại quyền truy cập đó. Nếu đúng mật khẩu sẽ gửi bản tin ACK với mã `PROTOCOL_ERR_SUCCESS` (`0x00`). Nếu sai mật khẩu sẽ gửi bản tin ACK với mã `PROTOCOL_ERR_PASSWORD_INCORRECT` (`0x10`).
+Chi tiết trong [Giao tiếp qua cổng RS485](../communication/rs485.md).
 
 ### 3.2. GET (`0x01`) & SET (`0x02`) — Đọc và ghi cấu hình hệ thống
 
@@ -401,9 +380,10 @@ Chức năng tạo sự kiện giả được dùng để phục vụ cho mục 
 |---:|---|---:|---|---|
 | 0 | Loại thiết bị phát hiện sự kiện | 1 byte | `uint8_t` | `0x00`: module / `0x01`: đồng hồ xung / `0x02`: đồng hồ modbus / `0x03`: cảm biến áp suất |
 | 1 | Số thứ tự thiết bị | 1 byte | `uint8_t` | Module: `0x00` / Đồng hồ xung: `0x00`–`0x03` / Đồng hồ modbus: `0x00`–`0x03` / Cảm biến áp suất: `0x00`–`0x01` |
-| 2 | Sự kiện | 1 byte | `uint8_t` | Tra [Bảng danh sách sự kiện](#table_event_code)  |
+| 2 | Sự kiện | 1 byte | `uint8_t` | Tra Bảng danh sách sự kiện  |
 
-**Danh sách sự kiện**<a id="table_event_code"></a>
+**Danh sách sự kiện**
+
 | Hex | Event | Mô tả |
 |---|---|---|
 | `0x00` | `EVENT_MCU_RESET` | Phát hiện reset thiết bị |
@@ -493,7 +473,9 @@ Lệnh `QUERY` được sử dụng để yêu cầu thiết bị cung cấp th�
 ```
 
 #### 3.3.4. Yêu cầu dữ liệu đồng hồ xung / đồng hồ Modbus
+
 Payload yêu cầu là chỉ số đồng hồ `MeterIndex`, giá trị hợp lệ trong khoảng `0x00` — `0x04`. Payload phản hồi được đóng gói theo thứ tự: chỉ số đồng hồ, số serial, tổng lưu lượng xuôi, tổng lưu lượng ngược, lưu lượng tức thời.
+
 | Offset | Trường | Kích thước | Định dạng | Ý nghĩa |
 |---:|---|---:|---|---|
 | 0 | `u8MeterIndex` | 1 byte | `uint8_t` | Chỉ số đồng hồ |
@@ -515,7 +497,9 @@ Payload yêu cầu là chỉ số đồng hồ `MeterIndex`, giá trị hợp l�
 ```
 
 #### 3.3.5. Yêu cầu dữ liệu cảm biến áp suất
+
 Payload yêu cầu là chỉ số đồng hồ `MeterIndex`, giá trị hợp lệ trong khoảng `0x00` — `0x01`. Payload phản hồi gồm được đóng gói theo thứ tự: Chỉ số cảm biến, số serial cảm biến, giá trị áp suất.
+
 | Offset | Trường | Kích thước | Định dạng | Ý nghĩa |
 |---:|---|---:|---|---|
 | 0 | `u8MeterIndex` | 1 byte | `uint8_t` | Chỉ số cảm biến |
@@ -650,6 +634,7 @@ Payload yêu cầu gồm chỉ số bản ghi push status cần đọc, kiểu `
 Nếu không đọc được bản ghi push status, thiết bị trả về lỗi `PROTOCOL_ERR_UNKNOW`.
 
 **Bảng mã lỗi module 4G**
+
 | Hex | Mã lỗi | Mô tả |
 |---|---|---|
 | `0x00` | `CELLULAR_ERROR_NONE` | Không có lỗi |
@@ -663,6 +648,7 @@ Nếu không đọc được bản ghi push status, thiết bị trả về lỗ
 | `0x08` | `CELLULAR_ERROR_TCP_CONNECT` | Lỗi kết nối TCP |
 
 **Bảng mã lỗi giao tiếp server**
+
 | Hex | Mã lỗi | Mô tả |
 |---|---|---|
 | `0x00` | `PUSH_ERROR_NONE` | Không có lỗi |
@@ -746,28 +732,8 @@ Nếu không đọc được bản ghi changed info log, thiết bị trả về
 
 ### 3.4. PUSH (`0x04`) — Thiết bị chủ động đẩy dữ liệu lên server
 
-| Push ID | Tên | Ý nghĩa |
-|---|---|---|
-| `0x00` | `PUSH_INFO` | Thông tin thiết bị, phiên bản firmware, SIM, tín hiệu mạng và trạng thái nguồn |
-| `0x01` | `PUSH_LATCH` | Dữ liệu Latch |
-| `0x02` | `PUSH_EVENT` | Danh sách sự kiện |
-| `0x03` | `PUSH_MODULE_CONFIG` | Cấu hình module |
-| `0x04` | `PUSH_PULSE_METER_CONFIG` | Cấu hình công tơ xung |
-| `0x05` | `PUSH_MODBUS_METER_CONFIG` | Cấu hình công tơ Modbus |
-| `0x06` | `PUSH_PRESSURE_SENSOR_CONFIG` | Cấu hình cảm biến áp suất |
+Chi tiết trong [Giao tiếp với Server](../communication/server.md).
 
-**Bảng các trường trong Payload PUSH_INFO**
-| Thứ tự | Trường dữ liệu | Kích thước | Định dạng / Ý nghĩa |
-|---:|---|---:|---|
-| 1 | Current Time | 6 bytes | `YY MM DD HH mm SS` |
-| 2 | Firmware Version | 10 bytes | Phiên bản firmware |
-| 3 | SIM CCID | 25 bytes | Mã định danh SIM; nếu không lấy được thì toàn bộ trường được điền `0x00` |
-| 4 | Signal Info | 4 bytes | Thông tin chất lượng tín hiệu theo thứ tự gồm: RSSI RSRP, RSRQ, RSSNR; nếu không lấy được thì 4 bytes được điền `0x00` |
-| 5 | VBUS Status | 1 byte | `0x00`: không có VBUS; `0x01`: có VBUS |
-| 6 | Charging Status | 1 byte | `0x00`: không sạc; `0x01`: đang sạc |
-| 7 | Battery Voltage | 2 bytes | Điện áp pin, đơn vị mV, kiểu `uint16_t` LE |
-| 8 | Reset Count | 1 byte | Số lần reset, kiểu `uint8_t` |
+### 3.5. OTA (`0x05`) — Cập nhật Firmware
 
-**Chú ý:**
-- Payload của `PUSH_LATCH` giống như [Payload Latch](#337-yêu-cầu-dữ-liệu-latch).
-- Payload của `PUSH_EVENT` giống như [Payload Event](#338-yêu-cầu-dữ-liệu-event).
+Chi tiết trong [OTA](../communication/ota.md).
