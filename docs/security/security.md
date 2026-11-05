@@ -12,7 +12,7 @@ Tài liệu này mô tả các cơ chế bảo mật của WM03A, gồm ba phầ
 
 ### 2.1. Đăng nhập bằng mật khẩu
 
-`[TBD: mô tả luồng bắt tay (ACCESS_LV_0) và đăng nhập (ACCESS_LV_1 đến ACCESS_LV_3)]`
+Được trình bày trong [Giao tiếp với PC Tool](../communication/rs485.md).
 
 ### 2.2. Phân quyền truy cập
 
@@ -34,7 +34,7 @@ Mỗi cấp mật khẩu được lưu thành một bản ghi `Password_Record_t
 - `au8DerivedKey`: khóa dẫn xuất PBKDF2-HMAC-SHA-256, 32 byte.
 - `u32IterationCount`: số vòng lặp PBKDF2, 4 byte.
 
-Khi người dùng nhập mật khẩu mới, firmware gọi `pbkdf2_hmac_sha256()` để tạo khóa dẫn xuất từ mật khẩu và salt, rồi lưu khóa dẫn xuất cùng salt vào bản ghi. Số vòng lặp cố định là 50. `[TBD: xác nhận salt có được sinh ngẫu nhiên mỗi lần đổi mật khẩu hay không]`
+Khi người dùng nhập mật khẩu mới, firmware gọi `pbkdf2_hmac_sha256()` để tạo khóa dẫn xuất từ mật khẩu và salt, rồi lưu khóa dẫn xuất cùng salt vào bản ghi. Số vòng lặp cố định là 50. Mã salt sẽ được thiết bị sinh ngẫu nhiên mỗi lần đổi mật khẩu.
 
 Mật khẩu mặc định trong firmware chỉ được lưu dưới dạng salt và khóa dẫn xuất đã tính sẵn. Mật khẩu thô vẫn xuất hiện trong chú thích cạnh macro khóa dẫn xuất tương ứng, cần xóa trước khi chia sẻ mã nguồn rộng hơn.
 
@@ -53,31 +53,25 @@ Mật khẩu mặc định trong firmware chỉ được lưu dưới dạng sal
 
 ### 4.1. Phạm vi áp dụng
 
-`[TBD: xác nhận CBC áp dụng cho kênh nào: RS485 với PC Tool, 4G với Server, hay cả hai]`
+Sử dụng quy tắc mã hoá cho cả hai cổng giao tiếp RS485 và Server. Riêng lệnh Server ACK sẽ không mã hoá (chi tiết ở [Giao tiếp với Server](../communication/server.md)).
 
 ### 4.2. Thuật toán mã hóa
 
 | Tham số | Giá trị |
 |---|---|
-| Thuật toán khối | `[TBD: AES-128 / AES-192 / AES-256]` |
-| Chế độ | CBC |
-| Độ dài khóa | `[TBD]` |
-| Đệm (padding) | `[TBD: PKCS#7 hoặc phương pháp khác]` |
-| Vector khởi tạo (IV) | `[TBD: cách sinh, có ngẫu nhiên và duy nhất cho mỗi gói không]` |
+| Thuật toán khối | AES-128 |
+| Chế độ | ECB |
+| Độ dài khóa | 16 bytes |
+| Đệm (padding) | Padding bất kỳ cho đủ bội số của 16 ký tự |
 
 ### 4.3. Quản lý khóa
 
-- Nơi lưu khóa: `[TBD]`
-- Cách cập nhật khóa: `[TBD]`
-- Khóa có được ghi ra ngoài qua PC Tool hoặc Server không: `[TBD]`
+- Nơi lưu khóa: Thiết bị, PC Tool, Server có chung Master Key.
+- Với PC Tool: Thiết bị và PC Tool sẽ thống nhất trao đổi Session Key với nhau khi bắt tay (Mã hoá Session Key bằng Master Key). Sau khi có Session Key thì các lệnh giao tiếp sẽ được mã hoá bằng Session Key.
+- Với Server: Thiết bị và Server giao tiếp với nhau qua mã khoá duy nhất là Master Key.
 
 ### 4.4. Toàn vẹn gói tin
 
-CBC chỉ bảo đảm tính bí mật, không tự phát hiện gói bị sửa đổi. `[TBD: xác nhận đang dùng CRC-16 hay có HMAC/MAC đi kèm]`. Nếu chỉ có CRC-16, nó chỉ phát hiện lỗi ngẫu nhiên, không chống được việc cố ý sửa gói tin.
-
-### 4.5. Xử lý lỗi
-
-- Giải mã lỗi do sai padding hoặc sai IV: `[TBD]`
-- Gói tin không qua kiểm tra toàn vẹn: `[TBD]`
+CBC chỉ bảo đảm tính bí mật, không tự phát hiện gói bị sửa đổi. Do đó, trong mỗi MESSAGE được mã hoá sẽ chèn thêm CRC16 ở cuối plaintext trước khi thực hiện mã hoá. Nếu giải mã MESSAGE mà sai CRC thì lập tức huỷ bỏ gói tin đó.
 
 ## 5. Tài liệu liên quan
